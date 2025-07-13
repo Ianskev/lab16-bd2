@@ -1,0 +1,10 @@
+class Config:   
+    # PostgreSQL config
+    POSTGRES_USER = 'postgres'
+    POSTGRES_PASSWORD = '123456'
+    POSTGRES_HOST = 'localhost'
+    POSTGRES_PORT = '5432'
+    POSTGRES_DB = 'ecommerce'
+    
+    SQLALCHEMY_DATABASE_URI = f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
