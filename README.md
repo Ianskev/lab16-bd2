@@ -1,43 +1,43 @@
-# E-commerce Shopping Cart System
+# Sistema de Carrito de Compras E-commerce
 
-This project implements a transactional shopping cart system using Flask, Redis for caching, and PostgreSQL for persistent storage. The system uses the Cache-Aside pattern to optimize performance and reduce database load.
+Este proyecto implementa un sistema transaccional de carrito de compras utilizando Flask, Redis para caché y PostgreSQL para almacenamiento persistente. El sistema utiliza el patrón Cache-Aside para optimizar el rendimiento y reducir la carga en la base de datos.
 
-## Project Structure
+## Estructura del Proyecto
 
 ```
 ecommerce/
 ├── app/
-│   ├── __init__.py             # Flask app initialization
-│   ├── config.py               # Application configurations
-│   ├── cache/                  # Cache modules
+│   ├── __init__.py             # Inicialización de la aplicación Flask
+│   ├── config.py               # Configuraciones de la aplicación
+│   ├── cache/                  # Módulos de caché
 │   │   ├── __init__.py
-│   │   └── redis_client.py     # Redis client implementation
-│   ├── models/                 # Data models
-│   │   ├── database.py         # Database models
-│   │   └── cart.py             # Cart business models
-│   ├── routes/                 # API routes
-│   │   ├── cart_routes.py      # Cart endpoints
-│   │   └── stats_routes.py     # Statistics endpoints
-│   └── services/               # Business logic
-│       └── cart_service.py     # Cart service with Cache-Aside pattern
+│   │   └── redis_client.py     # Implementación del cliente Redis
+│   ├── models/                 # Modelos de datos
+│   │   ├── database.py         # Modelos de base de datos
+│   │   └── cart.py             # Modelos de negocio del carrito
+│   ├── routes/                 # Rutas de la API
+│   │   ├── cart_routes.py      # Endpoints del carrito
+│   │   └── stats_routes.py     # Endpoints de estadísticas
+│   └── services/               # Lógica de negocio
+│       └── cart_service.py     # Servicio del carrito con patrón Cache-Aside
 ├── scripts/
-│   ├── seed_data.py            # Database seeding script
-│   └── performance_test.py     # Performance testing script
-├── docker-compose.yml          # Redis replication setup
-├── requirements.txt            # Dependencies
-└── run.py                      # Application entry point
+│   ├── seed_data.py            # Script para poblar la base de datos
+│   └── performance_test.py     # Script para pruebas de rendimiento
+├── docker-compose.yml          # Configuración de replicación de Redis
+├── requirements.txt            # Dependencias
+└── run.py                      # Punto de entrada de la aplicación
 ```
 
-## Redis Replication Configuration
+## Configuración de Replicación de Redis
 
-This project uses Redis in master-slave replication mode for high availability and read scalability. The replication consists of:
+Este proyecto utiliza Redis en modo de replicación maestro-esclavo para alta disponibilidad y escalabilidad de lectura. La replicación consiste en:
 
-1. **1 Master Node**: Handles all write operations
-2. **2 Replica Nodes**: Handle read operations to distribute load
+1. **1 Nodo Maestro**: Maneja todas las operaciones de escritura
+2. **2 Nodos Réplica**: Manejan operaciones de lectura para distribuir la carga
 
-### Docker Compose Setup
+### Configuración de Docker Compose
 
-The Redis replication is configured using Docker Compose:
+La replicación de Redis está configurada usando Docker Compose:
 
 ```yaml
 version: '3'
@@ -85,41 +85,41 @@ networks:
     driver: bridge
 ```
 
-### Key Configuration Points:
+### Puntos Clave de Configuración:
 
-1. **Data Persistence**: All nodes use the `--appendonly yes` flag to enable AOF persistence, ensuring data durability.
-2. **Replication Setup**: Replica nodes use the `--replicaof` option to specify the master node.
-3. **Network Configuration**: All nodes are on the same Docker network for easy communication.
-4. **Port Mapping**: Each Redis instance is exposed on a different port for external access:
-   - Master: 6379
-   - Replica 1: 6380
-   - Replica 2: 6381
+1. **Persistencia de Datos**: Todos los nodos utilizan la bandera `--appendonly yes` para habilitar la persistencia AOF, garantizando la durabilidad de los datos.
+2. **Configuración de Replicación**: Los nodos réplica utilizan la opción `--replicaof` para especificar el nodo maestro.
+3. **Configuración de Red**: Todos los nodos están en la misma red Docker para facilitar la comunicación.
+4. **Mapeo de Puertos**: Cada instancia de Redis se expone en un puerto diferente para acceso externo:
+   - Maestro: 6379
+   - Réplica 1: 6380
+   - Réplica 2: 6381
 
-## Cache-Aside Pattern Implementation
+## Implementación del Patrón Cache-Aside
 
-The Cache-Aside pattern is implemented in the `CartService` class:
+El patrón Cache-Aside está implementado en la clase `CartService`:
 
-### How it Works:
+### Cómo Funciona:
 
-1. **Read Operations**:
-   - First check if the data exists in Redis cache
-   - If found (cache hit), return the data
-   - If not found (cache miss), fetch from the database
-   - Store the fetched data in cache for future requests
-   - Return the data
+1. **Operaciones de Lectura**:
+   - Primero verifica si los datos existen en la caché Redis
+   - Si se encuentra (acierto de caché), devuelve los datos
+   - Si no se encuentra (fallo de caché), obtiene los datos de la base de datos
+   - Almacena los datos obtenidos en caché para futuras solicitudes
+   - Devuelve los datos
 
-2. **Write Operations**:
-   - Update the database first
-   - Then update or invalidate the cache
+2. **Operaciones de Escritura**:
+   - Actualiza primero la base de datos
+   - Luego actualiza o invalida la caché
 
-### Key Features:
+### Características Principales:
 
-1. **Cache Key Structure**: Uses prefixed keys (`cart:user_id`) for organizing data
-2. **TTL (Time To Live)**: Each cache entry expires after 30 minutes (1800 seconds)
-3. **Distributed Read Load**: Read operations use replica nodes in a round-robin fashion
-4. **Write Consolidation**: All write operations go to the master node
+1. **Estructura de Claves de Caché**: Utiliza claves con prefijo (`cart:user_id`) para organizar datos
+2. **TTL (Tiempo de Vida)**: Cada entrada en caché expira después de 30 minutos (1800 segundos)
+3. **Carga de Lectura Distribuida**: Las operaciones de lectura utilizan nodos réplica de forma rotatoria
+4. **Consolidación de Escritura**: Todas las operaciones de escritura van al nodo maestro
 
-### Code Example:
+### Ejemplo de Código:
 
 ```python
 def get_cart(self, user_id: str) -> Cart:
@@ -129,13 +129,13 @@ def get_cart(self, user_id: str) -> Cart:
     2. Si no está en cache, obtiene de la BD
     3. Actualiza el cache con los datos de la BD
     """
-    # Try to get cart from cache first
+    # Intenta obtener el carrito de la caché primero
     cart_key = self._get_cart_key(user_id)
     cached_cart = redis_client.get_data(cart_key)
     
     if cached_cart:
-        logger.info(f"Cache HIT for cart: {user_id}")
-        # Convert cached data to Cart object
+        logger.info(f"Cache HIT para carrito: {user_id}")
+        # Convierte los datos en caché a objeto Cart
         items = [
             CartItem(
                 product_id=item["product_id"],
@@ -146,8 +146,8 @@ def get_cart(self, user_id: str) -> Cart:
         ]
         return Cart(user_id=user_id, items=items)
     
-    # If not in cache, get from database
-    logger.info(f"Cache MISS for cart: {user_id}")
+    # Si no está en caché, obtiene de la base de datos
+    logger.info(f"Cache MISS para carrito: {user_id}")
     db_cart = DBCart.query.filter_by(user_id=user_id).first()
     
     if db_cart:
@@ -161,89 +161,89 @@ def get_cart(self, user_id: str) -> Cart:
         ]
         cart = Cart(user_id=user_id, items=items)
         
-        # Update cache
+        # Actualiza la caché
         redis_client.set_data(cart_key, cart.to_dict(), self.cache_ttl)
         return cart
 ```
 
-## Performance Results
+## Resultados de Rendimiento
 
-The implementation of the Cache-Aside pattern shows significant performance improvements:
+La implementación del patrón Cache-Aside muestra mejoras significativas de rendimiento:
 
-| Metric | Cached Response | Uncached Response | Improvement |
-|--------|----------------|-------------------|-------------|
-| Average Response Time | ~X ms | ~Y ms | ~Z% |
-| Min Response Time | ~X ms | ~Y ms | - |
-| Max Response Time | ~X ms | ~Y ms | - |
+| Métrica | Respuesta en Caché | Respuesta sin Caché | Mejora |
+|---------|-------------------|---------------------|--------|
+| Tiempo de Respuesta Promedio | ~X ms | ~Y ms | ~Z% |
+| Tiempo de Respuesta Mínimo | ~X ms | ~Y ms | - |
+| Tiempo de Respuesta Máximo | ~X ms | ~Y ms | - |
 
-*Note: Actual values will be filled in after running the performance tests.*
+*Nota: Los valores reales se completarán después de ejecutar las pruebas de rendimiento.*
 
 ## Endpoints
 
-### Cart Endpoints:
+### Endpoints del Carrito:
 
-- `GET /cart/<user_id>`: Get cart contents
-- `POST /cart/<user_id>/add`: Add item to cart
-- `POST /cart/<user_id>/remove/<product_id>`: Remove item from cart
-- `PUT /cart/<user_id>/update/<product_id>`: Update item quantity
-- `POST /cart/<user_id>/clear`: Clear cart
+- `GET /cart/<user_id>`: Obtener contenido del carrito
+- `POST /cart/<user_id>/add`: Agregar ítem al carrito
+- `POST /cart/<user_id>/remove/<product_id>`: Eliminar ítem del carrito
+- `PUT /cart/<user_id>/update/<product_id>`: Actualizar cantidad de ítem
+- `POST /cart/<user_id>/clear`: Limpiar carrito
 
-### Statistics Endpoints:
+### Endpoints de Estadísticas:
 
-- `GET /stats/top-products`: Get top 10 most purchased products
+- `GET /stats/top-products`: Obtener los 10 productos más comprados
 
-## Setup Instructions
+## Instrucciones de Configuración
 
-1. **Clone this repository**
+1. **Clonar este repositorio**
 
-2. **Set up Redis replication**:
+2. **Configurar la replicación de Redis**:
    ```
    docker-compose up -d
    ```
 
-3. **Create PostgreSQL database**:
+3. **Crear la base de datos PostgreSQL**:
    ```sql
    CREATE DATABASE ecommerce;
    ```
 
-4. **Install dependencies**:
+4. **Instalar dependencias**:
    ```
    pip install -r requirements.txt
    ```
 
-5. **Seed the database**:
+5. **Poblar la base de datos**:
    ```
    python -m scripts.seed_data
    ```
 
-6. **Run the application**:
+6. **Ejecutar la aplicación**:
    ```
    python run.py
    ```
 
-7. **Test performance** (optional):
+7. **Probar rendimiento** (opcional):
    ```
    python -m scripts.performance_test
    ```
 
-## Monitoring Redis Replication
+## Monitoreo de la Replicación de Redis
 
-To check the replication status:
+Para verificar el estado de la replicación:
 
 ```bash
-# Connect to master
+# Conectar al maestro
 docker exec -it redis-master redis-cli
 
-# Check replication info
+# Verificar información de replicación
 127.0.0.1:6379> info replication
 ```
 
-To check replica status:
+Para verificar el estado de las réplicas:
 
 ```bash
-# Connect to replica
+# Conectar a la réplica
 docker exec -it redis-replica-1 redis-cli
 
-# Check replication info
+# Verificar información de replicación
 127.0.0.1:6379> info replication
-``` 
+``` 5252
