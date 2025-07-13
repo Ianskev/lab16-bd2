@@ -8,3 +8,18 @@ class Config:
     
     SQLALCHEMY_DATABASE_URI = f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # Redis config
+    REDIS_MASTER_HOST = 'localhost'
+    REDIS_MASTER_PORT = 6379
+    REDIS_REPLICA_1_HOST = 'localhost'
+    REDIS_REPLICA_1_PORT = 6380
+    REDIS_REPLICA_2_HOST = 'localhost'
+    REDIS_REPLICA_2_PORT = 6381
+    
+    # Cache TTL in seconds (30 minutes)
+    CACHE_TTL = 1800
+    
+    # Key prefixes
+    CART_KEY_PREFIX = 'cart:'
+    PRODUCT_STATS_KEY = 'stats:top_products'
