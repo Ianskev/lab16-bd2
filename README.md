@@ -24,6 +24,7 @@ ecommerce/
 │   ├── seed_data.py            # Script para poblar la base de datos
 │   └── performance_test.py     # Script para pruebas de rendimiento
 ├── docker-compose.yml          # Configuración de PostgreSQL y replicación de Redis
+├── Dockerfile                  # Configuración para Docker
 ├── requirements.txt            # Dependencias
 └── run.py                      # Punto de entrada de la aplicación
 ```
@@ -48,37 +49,21 @@ services:
     container_name: redis-master
     ports:
       - "6379:6379"
-    volumes:
-      - ./redis-data/master:/data
-    command: redis-server --appendonly yes
-    networks:
-      - app-network
+    # Configuraciones adicionales...
 
   redis-replica-1:
     image: redis:latest
     container_name: redis-replica-1
     ports:
       - "6380:6379"
-    volumes:
-      - ./redis-data/replica1:/data
-    command: redis-server --appendonly yes --replicaof redis-master 6379
-    depends_on:
-      - redis-master
-    networks:
-      - app-network
+    # Configuraciones adicionales...
 
   redis-replica-2:
     image: redis:latest
     container_name: redis-replica-2
     ports:
       - "6381:6379"
-    volumes:
-      - ./redis-data/replica2:/data
-    command: redis-server --appendonly yes --replicaof redis-master 6379
-    depends_on:
-      - redis-master
-    networks:
-      - app-network
+    # Configuraciones adicionales...
       
   postgres:
     image: postgres:latest
@@ -89,17 +74,12 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    networks:
-      - app-network
+    # Configuraciones adicionales...
 
-networks:
-  app-network:
-    driver: bridge
-    
-volumes:
-  postgres-data:
+  flask-app:
+    build: .
+    container_name: flask-app
+    # Configuraciones adicionales...
 ```
 
 ### Puntos Clave de Configuración:
@@ -119,7 +99,12 @@ volumes:
      - Réplica 1: 6380
      - Réplica 2: 6381
 
-3. **Red**:
+3. **Flask App**:
+   - Se construye a partir del Dockerfile
+   - Se conecta automáticamente a los servicios de PostgreSQL y Redis
+   - Expone la aplicación en el puerto 5000
+
+4. **Red**:
    - Todos los servicios están en la misma red `app-network` para facilitar la comunicación
 
 ## Implementación del Patrón Cache-Aside
@@ -221,18 +206,37 @@ La implementación del patrón Cache-Aside muestra mejoras significativas de ren
 
 ## Instrucciones de Configuración
 
+Hay dos formas de ejecutar la aplicación: con Docker Compose o localmente.
+
+### Opción 1: Ejecución con Docker (recomendado)
+
+Este método es más sencillo y garantiza un entorno consistente:
+
 1. **Clonar este repositorio**
 
-2. **Iniciar los servicios con Docker Compose**:
+2. **Iniciar todos los servicios con Docker Compose**:
    ```
    docker-compose up -d
    ```
    
-   Esto iniciará:
-   - PostgreSQL en el puerto 5432
-   - Redis Master en el puerto 6379
-   - Redis Replica 1 en el puerto 6380
-   - Redis Replica 2 en el puerto 6381
+   Esto iniciará automáticamente:
+   - PostgreSQL
+   - Redis Master y Réplicas
+   - La aplicación Flask con los datos de prueba
+
+3. **Acceder a la aplicación**:
+   La API estará disponible en http://localhost:5000
+
+### Opción 2: Ejecución Local
+
+Si prefieres ejecutar localmente mientras usas los servicios de Docker:
+
+1. **Clonar este repositorio**
+
+2. **Iniciar los servicios de base de datos**:
+   ```
+   docker-compose up -d postgres redis-master redis-replica-1 redis-replica-2
+   ```
 
 3. **Instalar dependencias**:
    ```

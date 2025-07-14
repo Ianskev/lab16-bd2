@@ -51,6 +51,29 @@ services:
       - postgres-data:/var/lib/postgresql/data
     networks:
       - app-network
+  
+  flask-app:
+    build: .
+    container_name: flask-app
+    depends_on:
+      - postgres
+      - redis-master
+      - redis-replica-1
+      - redis-replica-2
+    environment:
+      - POSTGRES_HOST=postgres-ecommerce
+      - REDIS_MASTER_HOST=redis-master
+      - REDIS_REPLICA_1_HOST=redis-replica-1
+      - REDIS_REPLICA_1_PORT=6379
+      - REDIS_REPLICA_2_HOST=redis-replica-2
+      - REDIS_REPLICA_2_PORT=6379
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+    command: python run.py
+    networks:
+      - app-network
 
 networks:
   app-network:
