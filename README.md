@@ -23,21 +23,21 @@ ecommerce/
 ├── scripts/
 │   ├── seed_data.py            # Script para poblar la base de datos
 │   └── performance_test.py     # Script para pruebas de rendimiento
-├── docker-compose.yml          # Configuración de replicación de Redis
+├── docker-compose.yml          # Configuración de PostgreSQL y replicación de Redis
 ├── requirements.txt            # Dependencias
 └── run.py                      # Punto de entrada de la aplicación
 ```
 
-## Configuración de Replicación de Redis
+## Configuración de Docker (PostgreSQL y Redis)
 
-Este proyecto utiliza Redis en modo de replicación maestro-esclavo para alta disponibilidad y escalabilidad de lectura. La replicación consiste en:
+Este proyecto utiliza servicios dockerizados para facilitar el desarrollo:
 
-1. **1 Nodo Maestro**: Maneja todas las operaciones de escritura
-2. **2 Nodos Réplica**: Manejan operaciones de lectura para distribuir la carga
+1. **PostgreSQL**: Base de datos relacional para almacenamiento persistente
+2. **Redis en replicación**: Cache distribuido con un nodo maestro y dos réplicas
 
 ### Configuración de Docker Compose
 
-La replicación de Redis está configurada usando Docker Compose:
+La infraestructura está configurada usando Docker Compose:
 
 ```yaml
 version: '3'
@@ -52,7 +52,7 @@ services:
       - ./redis-data/master:/data
     command: redis-server --appendonly yes
     networks:
-      - redis-network
+      - app-network
 
   redis-replica-1:
     image: redis:latest
@@ -65,7 +65,7 @@ services:
     depends_on:
       - redis-master
     networks:
-      - redis-network
+      - app-network
 
   redis-replica-2:
     image: redis:latest
@@ -78,22 +78,49 @@ services:
     depends_on:
       - redis-master
     networks:
-      - redis-network
+      - app-network
+      
+  postgres:
+    image: postgres:latest
+    container_name: postgres-ecommerce
+    environment:
+      POSTGRES_DB: ecommerce
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - app-network
 
 networks:
-  redis-network:
+  app-network:
     driver: bridge
+    
+volumes:
+  postgres-data:
 ```
 
 ### Puntos Clave de Configuración:
 
-1. **Persistencia de Datos**: Todos los nodos utilizan la bandera `--appendonly yes` para habilitar la persistencia AOF, garantizando la durabilidad de los datos.
-2. **Configuración de Replicación**: Los nodos réplica utilizan la opción `--replicaof` para especificar el nodo maestro.
-3. **Configuración de Red**: Todos los nodos están en la misma red Docker para facilitar la comunicación.
-4. **Mapeo de Puertos**: Cada instancia de Redis se expone en un puerto diferente para acceso externo:
-   - Maestro: 6379
-   - Réplica 1: 6380
-   - Réplica 2: 6381
+1. **PostgreSQL**:
+   - Base de datos creada automáticamente: `ecommerce`
+   - Usuario por defecto: `postgres`
+   - Contraseña: `postgres`
+   - Puerto: `5432`
+   - Datos persistentes en el volumen `postgres-data`
+
+2. **Redis en Replicación**:
+   - **Persistencia de Datos**: Todos los nodos utilizan la bandera `--appendonly yes` para garantizar la durabilidad
+   - **Configuración de Replicación**: Los nodos réplica utilizan `--replicaof` para conectar al nodo maestro
+   - **Mapeo de Puertos**:
+     - Maestro: 6379
+     - Réplica 1: 6380
+     - Réplica 2: 6381
+
+3. **Red**:
+   - Todos los servicios están en la misma red `app-network` para facilitar la comunicación
 
 ## Implementación del Patrón Cache-Aside
 
@@ -196,39 +223,50 @@ La implementación del patrón Cache-Aside muestra mejoras significativas de ren
 
 1. **Clonar este repositorio**
 
-2. **Configurar la replicación de Redis**:
+2. **Iniciar los servicios con Docker Compose**:
    ```
    docker-compose up -d
    ```
+   
+   Esto iniciará:
+   - PostgreSQL en el puerto 5432
+   - Redis Master en el puerto 6379
+   - Redis Replica 1 en el puerto 6380
+   - Redis Replica 2 en el puerto 6381
 
-3. **Crear la base de datos PostgreSQL**:
-   ```sql
-   CREATE DATABASE ecommerce;
-   ```
-
-4. **Instalar dependencias**:
+3. **Instalar dependencias**:
    ```
    pip install -r requirements.txt
    ```
 
-5. **Poblar la base de datos**:
+4. **Poblar la base de datos**:
    ```
    python -m scripts.seed_data
    ```
 
-6. **Ejecutar la aplicación**:
+5. **Ejecutar la aplicación**:
    ```
    python run.py
    ```
 
-7. **Probar rendimiento** (opcional):
+6. **Probar rendimiento** (opcional):
    ```
    python -m scripts.performance_test
    ```
 
-## Monitoreo de la Replicación de Redis
+## Monitoreo de la Infraestructura
 
-Para verificar el estado de la replicación:
+### Verificar estado de PostgreSQL:
+
+```bash
+# Conectar al contenedor de PostgreSQL
+docker exec -it postgres-ecommerce psql -U postgres -d ecommerce
+
+# Listar tablas
+\dt
+```
+
+### Verificar estado de la replicación de Redis:
 
 ```bash
 # Conectar al maestro
@@ -246,4 +284,4 @@ docker exec -it redis-replica-1 redis-cli
 
 # Verificar información de replicación
 127.0.0.1:6379> info replication
-``` 5252
+```

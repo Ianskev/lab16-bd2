@@ -1,24 +1,25 @@
 import json
 import redis
 from typing import Optional, Dict, Any, List
+from app.config import Config
 
 class RedisClient:
     def __init__(self):
         # Connection to master (for writes)
         self.master = redis.Redis(
-            host='localhost',
-            port=6379,
+            host=Config.REDIS_MASTER_HOST,
+            port=Config.REDIS_MASTER_PORT,
             decode_responses=True
         )
         
         # Connections to replicas (for reads)
         self.replicas = [
-            redis.Redis(host='localhost', port=6380, decode_responses=True),
-            redis.Redis(host='localhost', port=6381, decode_responses=True)
+            redis.Redis(host=Config.REDIS_REPLICA_1_HOST, port=Config.REDIS_REPLICA_1_PORT, decode_responses=True),
+            redis.Redis(host=Config.REDIS_REPLICA_2_HOST, port=Config.REDIS_REPLICA_2_PORT, decode_responses=True)
         ]
         
         # Default expiration time for cache items (30 minutes)
-        self.default_expiry = 1800  # 30 minutes in seconds
+        self.default_expiry = Config.CACHE_TTL
     
     def _get_replica(self) -> redis.Redis:
         """Get a replica connection using a simple round-robin strategy"""
